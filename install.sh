@@ -8,7 +8,7 @@ VER=1.0.0
 SRC=/usr/src/avell-dchu-$VER
 
 echo ">> Dependências"
-apt-get install -y dkms "linux-headers-$(uname -r)" python3-gi gir1.2-adw-1 gir1.2-gtk-4.0 >/dev/null
+apt-get install -y build-essential python3-cairo python3-gi-cairo dkms "linux-headers-$(uname -r)" python3-gi gir1.2-adw-1 gir1.2-gtk-4.0 >/dev/null
 
 echo ">> Driver (DKMS)"
 if dkms status -m avell-dchu -v "$VER" | grep -q .; then

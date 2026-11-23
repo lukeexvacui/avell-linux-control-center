@@ -1,177 +1,275 @@
 # Avell Linux Control Center
 
-Painel de controle para **Avell A50i no Linux**, com curvas de ventilação,
-monitoramento de temperatura/RPM, iluminação RGB e restauração automática.
+Controle a ventilação, acompanhe temperaturas e personalize a iluminação do **Avell A50i no Linux**, em um painel GTK4 integrado ao desktop.
 
-Este fork é mantido por [lukeexvacui](https://github.com/lukeexvacui) e deriva de
-[LuizRojas/avell-linux-control-center](https://github.com/LuizRojas/avell-linux-control-center).
-O driver e a implementação original são de Luiz Rojas; os créditos e a licença
-**GPL-2.0-or-later** foram preservados.
+Este fork é mantido por [lukeexvacui](https://github.com/lukeexvacui), a partir do trabalho de [Luiz Rojas](https://github.com/LuizRojas/avell-linux-control-center). Driver e implementação original creditados ao autor; licença **GPL-2.0-or-later** preservada.
 
-### Novidades deste fork
+> Projeto não oficial, sem vínculo com Avell, Clevo ou TUXEDO. Instala um módulo de kernel e controla hardware. O suporte deste fork foi validado no A50i descrito abaixo; não presuma compatibilidade com outros modelos.
 
-- Compatibilidade testada com Ubuntu 24.04 e kernel 6.8.0-149-generic.
-- Conversão corrigida do contador do firmware para RPM.
-- Curvas independentes CPU/GPU com mínimo/máximo, proteção a 90 °C e watchdog.
-- Painel GTK com cartões de sensores, gráficos, prévia da curva e atalhos de cor.
-- Configurações de curva e LEDs salvas e restauradas pelo serviço de inicialização.
-- Testes sem acesso ao hardware: `python3 test_curve.py` e `python3 test_rpm.py`.
+## Conheça a interface
 
-A instalação requer privilégios de administrador e carrega um módulo de kernel.
-A curva personalizada está limitada ao A50i e duas ventoinhas. A restauração foi
-testada reiniciando o serviço; reinício completo e suspensão reais ainda não foram
-validados. O controle não substitui manutenção de uma refrigeração defeituosa.
+### Monitoramento
 
----
+Temperaturas, RPM e potência das ventoinhas a cada 2 segundos. Gráfico de até 30 minutos da sessão, com exportação CSV.
 
-**Control Center nativo para Linux em notebooks Avell/Clevo** que usam a
-interface ACPI `CLV0001` / `\_SB.DCHU` (Insyde DCHU).
+![Painel de monitoramento com indicadores de CPU, GPU e histórico de temperatura](docs/screenshots/monitor.png)
 
-O projeto porta o **Control Center 3.0** do Windows (Clevo/Insyde) por
-engenharia reversa e entrega três peças: um driver de kernel (DKMS), a CLI
-`avellctl` e um app GTK4/libadwaita. O núcleo é genérico: o driver pergunta
-ao firmware o que a máquina tem (ventoinhas, tipo de teclado) e só expõe
-isso. Diferenças entre modelos ficam numa tabela de quirks por DMI, sem
-duplicar código.
+### Curvas de ventilação
 
-> 🇺🇸 *Native Linux replacement for the Avell/Clevo Control Center on
-> machines exposing the `CLV0001` DCHU ACPI interface: kernel driver (power
-> profiles, fans, RGB keyboard, battery charge limit, Fn hotkeys) + GTK4 app.*
+Defina temperaturas inicial/final e limites mínimo/máximo para CPU e GPU, com prévia antes de aplicar.
 
-> ⚠️ Projeto **não oficial**, sem vínculo com a Avell ou a Clevo. Use por sua
-> conta e risco.
+![Editor de curvas com prévia e limites independentes para CPU e GPU](docs/screenshots/curva.png)
 
-## O que foi portado
+### Iluminação do teclado
 
-| Componente do Control Center (Windows) | Equivalente no Linux |
+Ajuste brilho, cor e efeitos; use os atalhos de cores e acompanhe a prévia. O A50i tem RGB de **uma zona**, sem cores individuais por tecla.
+
+![Controle de brilho, cor e efeitos do teclado com prévia e atalhos](docs/screenshots/teclado.png)
+
+*Capturas reais do aplicativo com sensores do notebook. Temperaturas e rotações são exemplos daquele momento, não metas de funcionamento.*
+
+## Recursos
+
+- Driver adaptado ao kernel Linux 6.8 e conversão corrigida do contador de período para RPM.
+- Curvas independentes de CPU/GPU, executadas mesmo com a janela fechada.
+- Proteção térmica e watchdog do serviço de ventilação.
+- LEDs, perfis de energia e limites de carga da bateria, conforme suporte do firmware.
+- Configurações aplicadas salvas e restauradas automaticamente ao iniciar.
+- Interface gráfica e comandos pelo terminal.
+
+## Compatibilidade e requisitos
+
+| Item | Ambiente validado neste fork |
 |---|---|
-| CC30: modos de energia (Silencioso, Economia, Entretenimento, Desempenho) | `platform_profile` → menu de energia do GNOME + app |
-| FanSpeedSetting: RPM, temperatura, duty, modos, anti-poeira | `hwmon` (`sensors`) + app / `avellctl fan`, `antidust` |
-| LedKeyboardSetting: luz branca ou RGB, cor, brilho, efeitos | LED `avell::kbd_backlight` + app (efeitos gerados pelo driver no RGB de zona única) |
-| BatteryUtility (FlexiCharger): limite de carga | `charge_control_*_threshold` ("Preservar saúde da bateria" do GNOME) + app |
-| DCHUService + FnKey: teclas Fn | tratadas no driver / dispositivo de entrada |
-| AcpiBridge + InsydeDCHU | driver `avell_dchu` (`acpi_evaluate_dsm`) |
+| Notebook | Avell A50i / placa HYB A50i, duas ventoinhas |
+| BIOS / EC | 1.07.01TBN / 1.07.03 |
+| Sistema | Ubuntu 24.04, systemd, sessão gráfica GNOME |
+| Kernel | 6.8.0-149-generic |
+| Secure Boot | Ativo, com chave de assinatura DKMS já registrada |
+| Interface do firmware | ACPI `CLV0001` |
 
-Drivers do restante do hardware do pacote Windows (vídeo, Wi-Fi, áudio etc.)
-já têm equivalente nativo no kernel: veja [docs/DRIVERS.md](docs/DRIVERS.md).
+O projeto original relata testes em Debian 13/kernel 6.12. Isso não equivale à validação de todas as alterações deste fork naquele ambiente. A interface usa recursos recentes de GTK4/libadwaita; Ubuntu 22.04 com as bibliotecas padrão não é o ambiente suportado por este guia.
 
-## Modelos
+Você precisa de internet para baixar dependências, acesso `sudo` e headers correspondentes ao kernel em execução. Não é necessário ter Windows instalado.
 
-| Modelo | Status | BIOS / EC | Teclado | Sistema |
-|---|---|---|---|---|
-| Avell A50i (HYB A50i) | ✅ portado e testado | 1.07.01TBN / 1.07.03 | RGB zona única (tipo 6) | Debian 13, kernel 6.12, GNOME 48 |
-| Avell ION A50 | 🔎 a verificar | — | — | — |
+## Instalação passo a passo — Ubuntu 24.04
 
-Qualquer Avell/Clevo com `CLV0001` pode funcionar. Confira com
-`ls /sys/bus/acpi/devices | grep CLV0001`. Para adicionar seu modelo, abra uma
-issue com a saída de `avellctl`, `sudo dmidecode -s system-product-name -s bios-version`
-e `sudo dmesg | grep avell`.
+### 1. Confira o notebook e o kernel
 
-### Ajustes por modelo (quirks)
-
-O driver lê do firmware o tipo de teclado e o número de ventoinhas. Se a sua
-máquina reportar algo errado, teste sem recompilar:
+Abra um terminal e execute:
 
 ```bash
-sudo modprobe -r avell_dchu
-sudo modprobe avell_dchu force_kbd_type=6 force_fan_count=2
+cat /sys/class/dmi/id/product_name
+uname -r
+ls -d /sys/bus/acpi/devices/CLV0001:*
 ```
 
-Se funcionar, abra um PR adicionando uma entrada `DMI_MATCH()` em
-`avell_quirk_table` (`driver/avell_dchu.c`). O driver imprime no `dmesg`
-a linha `DMI: <fabricante> <produto>, BIOS <versão>` para você copiar.
+O modelo validado é `A50i`. O último comando deve encontrar uma interface como `CLV0001:00`. Se ela não existir, não force a detecção: este driver pode não ser adequado ao equipamento. Outros modelos e kernels precisam de validação própria.
 
-## Instalar
+### 2. Prepare o sistema
 
-Requisitos: Debian/Ubuntu (usa `apt` para instalar `dkms`, headers do kernel
-e GTK4/libadwaita). Com Secure Boot ativo, a chave MOK do DKMS precisa estar
-registrada.
+```bash
+sudo apt update
+sudo apt install git build-essential dkms mokutil "linux-headers-$(uname -r)"
+```
+
+Se o pacote de headers não estiver disponível, resolva a instalação do kernel/headers antes de continuar. O compilador precisa das definições da versão exata em execução.
+
+### 3. Baixe e instale
 
 ```bash
 git clone https://github.com/lukeexvacui/avell-linux-control-center.git
 cd avell-linux-control-center
-./install.sh
+sudo ./install.sh
 ```
 
-Isso compila o módulo via DKMS (recompila sozinho a cada atualização do
-kernel), instala `avellctl`, o app **Avell Control Center**, a regra polkit
-(o usuário local ativo altera o hardware sem senha) e o serviço que restaura
-suas configurações no boot.
+O instalador:
 
-Remover: `./uninstall.sh`
+1. Instala as dependências Python, GTK4/libadwaita e Cairo para os gráficos.
+2. Compila e instala `avell_dchu` por DKMS.
+3. Instala o painel, `avellctl` e o serviço de curvas.
+4. Habilita a restauração das configurações no boot.
+5. Carrega o driver e exibe o estado do equipamento.
 
-## Usar
+A instalação também adiciona uma política polkit que permite ao usuário da sessão local ativa alterar as opções suportadas sem pedir senha a cada clique. O driver inicializa o perfil equilibrado e o teclado; personalize-os depois da instalação.
 
-Abra **Avell Control Center** no menu de aplicativos, ou use o terminal:
+**A primeira instalação não ativa uma curva personalizada automaticamente.** Abra a aba Curva e clique em **Aplicar e salvar curva** quando estiver pronto. DKMS tenta recompilar o driver em atualizações do kernel, mas a compatibilidade com kernels novos não é garantida.
+
+### 4. Se o Secure Boot impedir o carregamento
+
+Confira:
 
 ```bash
-avellctl                       # estado + sensores
-avellctl profile performance   # quiet | low-power | balanced | performance
-avellctl fan silent            # auto | silent | max | maxq
-avellctl kbd 3                 # brilho do teclado
-avellctl color 00aaff          # cor (RGB)
-avellctl effect cycle          # static breathe cycle flash random (+ wave dance tempo no 3 zonas)
-avellctl charge 70 90          # carregar abaixo de 70%, parar em 90%
-sudo avellctl raw 0x0d         # chamada _DSM bruta (diagnóstico)
+mokutil --sb-state
 ```
 
-## Estrutura
+Erros como `Key was rejected by service` indicam que a assinatura pode não ser confiável para o sistema. No Ubuntu, o DKMS normalmente assina o módulo com uma chave MOK; o certificado precisa estar registrado.
 
-```
-driver/      módulo de kernel avell_dchu (DKMS)
-avell_cc/    biblioteca, CLI, helper privilegiado e app GTK4/libadwaita
-data/        polkit, systemd, .desktop
-docs/        PROTOCOLO.md (engenharia reversa) e DRIVERS.md (drivers do Windows → Linux)
-```
+Se a instalação solicitar uma senha temporária de MOK, anote-a, reinicie quando puder e conclua o cadastro na tela **MokManager → Enroll MOK → Continue → Yes**, usando essa senha. Ela é específica para esse cadastro.
 
-## Como funciona
+Se não houver solicitação, confira o caminho de **Public certificate** mostrado pelo DKMS. Quando ele for `/var/lib/shim-signed/mok/MOK.der`, você pode verificar e solicitar o cadastro:
 
-Toda a pilha do Windows (`AcpiBridge.sys` + `InsydeDCHU.dll` + apps .NET) se
-resume a uma chamada ACPI:
-
-```
-\_SB.DCHU._DSM(93f224e4-fbdc-4bbf-add6-db71bdc0afad, 0, <comando>, Package { Buffer(256) })
+```bash
+sudo mokutil --test-key /var/lib/shim-signed/mok/MOK.der
+# Execute a importação apenas se o certificado existir e não estiver registrado:
+sudo mokutil --import /var/lib/shim-signed/mok/MOK.der
 ```
 
-O driver faz essa mesma chamada com `acpi_evaluate_dsm()` e expõe tudo pelas
-interfaces padrão do kernel. A tabela completa de comandos e os detalhes estão
-em [docs/PROTOCOLO.md](docs/PROTOCOLO.md).
+Depois de concluir o cadastro e voltar ao Ubuntu:
 
-## Contribuir
+```bash
+sudo modprobe avell_dchu
+sudo systemctl restart avell-cc-restore.service
+avellctl status
+```
 
-- O desenvolvimento acontece na `develop`; a `main` é protegida e só recebe
-  releases por PR.
-- Abra o PR contra a `develop` usando o template do repositório
-  (título `[FEAT]`, `[FIX]`, `[DOCS]`…).
-- Mudanças no driver devem informar modelo, BIOS e kernel em que foram testadas.
+Não importe arquivos de chave privada. Caminhos e procedimentos podem variar em outras distribuições. Consulte a [documentação oficial de Secure Boot do Ubuntu](https://documentation.ubuntu.com/security/security-features/platform-protections/secure-boot/).
 
-## Segurança
+### 5. Abra e confira o painel
 
-O driver só emite as chamadas `_DSM` que o Control Center oficial emite. O
-dispositivo `/dev/avell-dchu` (chamadas brutas) exige root (`CAP_SYS_ADMIN`).
-O helper do polkit aceita apenas uma lista fechada de operações e valores.
+Procure **Avell Control Center** no menu de aplicativos ou execute, como seu usuário normal:
 
-Este repositório não contém nenhum binário, instalador ou código do software
-original; só código próprio e a documentação do protocolo, para
-interoperabilidade.
+```bash
+avell-control-center
+```
 
-## Licença
+No terminal, confira a instalação:
 
-GPL-2.0-or-later. Veja [LICENSE](LICENSE).
+```bash
+avellctl status
+dkms status -m avell-dchu
+systemctl is-enabled avell-cc-restore.service
+```
 
+Espere ver o driver instalado, sensores CPU/GPU e `enabled` para a restauração. Não execute a interface gráfica com `sudo`.
 
-## Painel local A50i / Ubuntu 24.04 (2026-11-23)
+## Primeiro uso
 
-- Monitor: temperatura, RPM corrigido e ventilação, com gráfico de até 30 minutos e exportação CSV em Documentos/Avell.
-- Curva: CPU e GPU independentes; temperatura inicial/final e mínimo/máximo em %. Clique em Aplicar minha curva.
-- Padrão: 35% até 45 °C, crescimento linear até 100% a 80 °C.
-- A 90 °C em qualquer componente, ambas recebem 100%. Esse limite de proteção prevalece sobre o máximo escolhido.
-- Faixa editável: temperaturas de 30 a 85 °C e ventilação de 30 a 100%. A queda de ventilação é limitada a 5 pontos por ciclo; aumentos são imediatos.
-- Serviço avell-fan-curve: independente da janela, leitura a cada 2 s, watchdog de 10 s, ventilação máxima em falha/parada. Ao voltar ao automático pelo painel, os canais retornam ao firmware.
-- Configuração salva em /var/lib/avell-cc/state.json e restaurada pelo serviço de boot existente. Reinício/suspensão reais ainda não testados; intervalo prolongado detectado no monitor encerra a curva e aciona proteção.
-- Teclado: brilho, cor e efeitos existentes; bateria e perfis de energia continuam disponíveis.
-- A máquina não expõe LEDs individualmente: o teclado é RGB de uma zona.
+### Configure sua curva
 
-Verificações: python3 test_curve.py; python3 test_rpm.py; make -C driver.
-Testados no hardware: ventilação 100/90% por canal, curva ativa e falha forçada do serviço com retorno a máxima. Sem teste de estresse.
-Interface conferida em tela virtual. Protocolo per-channel PK04(1)/EC C1 e liberação 0x69 comparados com ClevoFanControl/src/hardware.rs, commit 3531063f718952cb789353b5c407eb5594cf274e.
+1. Abra **Curva**.
+2. Para cada componente, escolha a temperatura em que a ventilação começa a subir e aquela em que chega ao máximo.
+3. Defina mínimo e máximo em **porcentagem de ventilação, não RPM**.
+4. Confira a prévia e clique em **Aplicar e salvar curva**.
+5. Veja no Monitor se a potência e a rotação respondem ao ajuste.
+
+O formulário começa com **35% até 45 °C, subindo linearmente até 100% a 80 °C**. Temperaturas editáveis vão de 30 a 85 °C e ventilação de 30 a 100%. Início deve ser menor que fim, e mínimo não pode superar máximo.
+
+**Proteções que prevalecem sobre sua curva:**
+
+- A 90 °C em qualquer componente, ambas as ventoinhas recebem 100%, mesmo acima do máximo escolhido.
+- Reduções são limitadas a 5 pontos percentuais por ciclo; aumentos são imediatos.
+- Falta de sensor, rotação inválida ou divergência na potência lida interrompem a curva e solicitam ventilação máxima.
+- O watchdog de 10 segundos e o encerramento do serviço também acionam essa proteção. Isso depende de o sistema/driver ainda conseguir comunicar-se com o hardware.
+
+Fechar a janela **não para** a curva. Use **Voltar ao automático** para devolver o controle ao firmware ou **Resfriar ao máximo** para solicitar 100%.
+
+### Configure os LEDs
+
+Na aba **Teclado**, escolha brilho, uma cor e um efeito. Cada alteração aplicada é salva automaticamente. A prévia mostra a cor; a animação dos efeitos aparece no teclado físico. Os efeitos disponíveis dependem do modelo.
+
+### Acompanhe e exporte
+
+Na aba **Monitor**, alterne entre temperatura, RPM e ventilação. **Exportar histórico em CSV** salva os dados em `Avell/` dentro da pasta Documentos configurada no desktop. O gráfico guarda até 30 minutos enquanto a janela está aberta; não é um registro permanente em segundo plano.
+
+## Restauração ao reiniciar
+
+As opções aplicadas ficam em `/var/lib/avell-cc/state.json`. O serviço `avell-cc-restore.service` carrega o driver e restaura as opções salvas, inclusive LEDs e curva quando selecionada. Não é necessário abrir o painel para a curva funcionar.
+
+Para testar a restauração sem reiniciar o notebook:
+
+```bash
+sudo systemctl restart avell-cc-restore.service
+avellctl status
+```
+
+Se uma curva estiver selecionada:
+
+```bash
+systemctl status avell-fan-curve.service --no-pager
+```
+
+O serviço de restauração é do tipo `oneshot`: pode aparecer `inactive (dead)` depois de executar com sucesso. Confira o resultado com:
+
+```bash
+systemctl show avell-cc-restore.service -p Result -p ExecMainStatus -p UnitFileState
+```
+
+O resultado esperado é `success`, código `0` e `enabled`.
+
+## Atualizar
+
+Antes de atualizar, volte ao automático para não deixar o serviço usando o driver durante a troca:
+
+```bash
+avellctl fan auto
+cd avell-linux-control-center
+git pull --ff-only
+sudo ./install.sh
+```
+
+Feche e reabra o painel. A configuração da curva continua salva, mas o comando acima muda o modo ativo para automático; reaplique sua curva na interface se quiser usá-la novamente. Alterações locais no código podem exigir resolver conflitos antes de atualizar.
+
+## Remover
+
+Dentro da pasta do projeto:
+
+```bash
+avellctl fan auto
+sudo ./uninstall.sh
+```
+
+A desinstalação remove o aplicativo, o módulo DKMS, os serviços e **as configurações salvas**. Para guardar suas preferências antes, copie o arquivo:
+
+```bash
+sudo cat /var/lib/avell-cc/state.json > avell-settings-backup.json
+```
+
+## Problemas comuns
+
+| Sintoma | O que conferir |
+|---|---|
+| `Driver não carregado` | Execute `sudo modprobe avell_dchu` e leia o erro; confira Secure Boot e `dkms status`. |
+| Erro ao compilar | Confira `uname -r`, headers e o log `/var/lib/dkms/avell-dchu/1.0.0/build/make.log`. |
+| Gráficos não abrem | Confira `python3-cairo` e `python3-gi-cairo`; execute o painel no terminal para ver o erro. |
+| Biblioteca GTK/Adwaita incompatível | Use o ambiente validado Ubuntu 24.04; distribuições antigas podem não ter as APIs necessárias. |
+| Curva parou e ventilação ficou no máximo | Veja os logs abaixo. Corrija a causa antes de reaplicar; o máximo pode ser a proteção funcionando. |
+| Curva não aceita outro notebook | O serviço restringe o controle ao A50i com duas ventoinhas. Não contorne a verificação sem validar o protocolo do modelo. |
+| Sem cor individual por tecla | O A50i tem teclado RGB de uma zona. |
+
+Logs úteis:
+
+```bash
+journalctl -b -u avell-fan-curve.service -u avell-cc-restore.service --no-pager -n 80
+sudo journalctl -k -b --no-pager -g avell
+```
+
+Ao abrir uma issue, informe modelo, BIOS/EC, distribuição, kernel, saída de `avellctl status` e os erros relevantes. Revise os logs para remover informações pessoais.
+
+## Validação e limitações
+
+Testados no notebook: compilação e carregamento com Secure Boot, RPM, velocidades independentes de 100/90%, curva em execução, falha forçada do serviço acionando máxima e restauração das opções via serviço. **Reinício completo e suspensão reais ainda não foram validados.** Um intervalo prolongado no monitoramento, inclusive após suspensão, interrompe a curva e solicita máxima.
+
+Testes locais sem escrever no hardware:
+
+```bash
+python3 test_curve.py
+python3 test_rpm.py
+make -C driver
+```
+
+O último comando só compila o módulo; não instala nem carrega. As proteções de software não substituem refrigeração funcional ou avaliação de defeito físico.
+
+## Código, protocolo e contribuições
+
+- `driver/`: módulo ACPI/DCHU e sensores hwmon.
+- `avell_cc/`: interface, CLI, persistência e serviço de curvas.
+- `data/`: serviços, política polkit e integração com o menu.
+- [Protocolo DCHU](docs/PROTOCOLO.md) e [notas de drivers do projeto original](docs/DRIVERS.md).
+- [Referência Windows das operações por canal](https://github.com/XiaoQing235/ClevoFanControl/blob/3531063f718952cb789353b5c407eb5594cf274e/src/hardware.rs).
+
+Abra issues e pull requests neste fork, contra `main`. Mudanças de hardware devem informar modelo, BIOS, kernel e como foram verificadas. O repositório não distribui os binários proprietários do Control Center Windows.
+
+## Licença e créditos
+
+**GPL-2.0-or-later** — veja [LICENSE](LICENSE). Base original de [Luiz Rojas](https://github.com/LuizRojas/avell-linux-control-center), com adaptações de kernel, RPM, curvas e interface mantidas neste fork.
