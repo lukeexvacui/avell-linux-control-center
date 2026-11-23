@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+if [ "$1" = purge ]; then
+    rm -f /var/lib/avell-cc/state.json /var/lib/avell-cc/state.json.tmp
+    rmdir /var/lib/avell-cc 2>/dev/null || true
+fi
+case "$1" in remove|purge)
+    rm -f /run/avell-fan-curve.json /run/avell-fan-curve.tmp /run/avell-cc.lock
+    if [ -d /run/systemd/system ]; then systemctl daemon-reload; fi
+    ;;
+esac

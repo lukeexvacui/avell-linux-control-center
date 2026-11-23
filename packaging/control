@@ -1,0 +1,13 @@
+Package: avell-control-center
+Version: 1.1.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: lukeexvacui <lukeexvacui@users.noreply.github.com>
+Depends: python3, python3-gi, python3-cairo, python3-gi-cairo, gir1.2-gtk-4.0 (>= 4.10), gir1.2-adw-1 (>= 1.4), dkms, build-essential, kmod, systemd, pkexec
+Recommends: linux-headers-generic, mokutil
+Homepage: https://github.com/lukeexvacui/avell-linux-control-center
+Description: Controle de ventilacao, RGB e sensores para Avell A50i
+ Painel GTK4, curvas CPU/GPU com protecao termica, driver DKMS,
+ monitoramento de RPM e restauracao de configuracoes no boot.
+ Validado no Ubuntu 24.04 amd64 com kernel 6.8.

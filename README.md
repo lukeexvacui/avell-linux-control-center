@@ -52,7 +52,57 @@ O projeto original relata testes em Debian 13/kernel 6.12. Isso não equivale à
 
 Você precisa de internet para baixar dependências, acesso `sudo` e headers correspondentes ao kernel em execução. Não é necessário ter Windows instalado.
 
-## Instalação passo a passo — Ubuntu 24.04
+## Instalação fácil com `.deb` (recomendada)
+
+**[Baixar avell-control-center_1.1.0_amd64.deb](https://github.com/lukeexvacui/avell-linux-control-center/releases/download/v1.1.0/avell-control-center_1.1.0_amd64.deb)** · [Notas da release](https://github.com/lukeexvacui/avell-linux-control-center/releases/tag/v1.1.0)
+
+Para **Ubuntu 24.04 de 64 bits (amd64)** no modelo validado. Confira a compatibilidade acima antes de instalar. O pacote contém o código-fonte do driver: ele é compilado localmente por DKMS, não é um módulo pré-compilado para qualquer kernel.
+
+1. Baixe o arquivo `.deb` pelo link acima.
+2. Abra um terminal **na pasta em que salvou o arquivo**.
+3. Execute:
+
+```bash
+sudo apt update
+sudo apt install "linux-headers-$(uname -r)"
+sudo apt install ./avell-control-center_1.1.0_amd64.deb
+```
+
+Use `apt install ./arquivo.deb` para resolver as dependências automaticamente. Aguarde a compilação do driver terminar; ela pode levar alguns minutos. Se o Secure Boot bloquear o carregamento, siga a seção de MOK abaixo: instalar o pacote não dispensa a autorização da chave de assinatura.
+
+Abra **Avell Control Center** no menu ou execute `avell-control-center`. Confira com `avellctl status`. A curva só é ativada após **Aplicar e salvar curva**; preferências existentes de uma instalação manual são preservadas.
+
+### Atualizar ou remover a versão `.deb`
+
+Para atualizar, baixe o `.deb` mais recente e instale com `sudo apt install ./nome-do-arquivo.deb`. O pacote interrompe o serviço durante a troca e restaura as preferências depois. Não combine esse método com `install.sh`/`uninstall.sh` depois de passar a usar o pacote.
+
+```bash
+# Remover o aplicativo, mantendo as preferências para uma futura instalação:
+sudo apt remove avell-control-center
+
+# OU remover também as preferências salvas:
+sudo apt purge avell-control-center
+```
+
+O pacote devolve os canais ao controle do firmware antes de remover o driver. Guarde um backup de `/var/lib/avell-cc/state.json` se quiser preservar as opções antes do purge.
+
+### Conferir integridade e construir o pacote
+
+A release também inclui `SHA256SUMS`. Baixe-o para a mesma pasta do `.deb` e confira:
+
+```bash
+sha256sum -c SHA256SUMS
+```
+
+Para gerar o pacote a partir deste repositório, sem privilégios de administrador:
+
+```bash
+python3 packaging/build-deb.py
+```
+
+O resultado fica em `dist/`. A construção requer `dpkg-deb` e Python 3. As fontes do driver, aplicativo, serviços e instruções ficam dentro do pacote; preferências pessoais, chaves de assinatura e binários proprietários não são incluídos.
+
+## Instalação pelo código-fonte — Ubuntu 24.04 (alternativa)
 
 ### 1. Confira o notebook e o kernel
 
@@ -197,7 +247,7 @@ systemctl show avell-cc-restore.service -p Result -p ExecMainStatus -p UnitFileS
 
 O resultado esperado é `success`, código `0` e `enabled`.
 
-## Atualizar
+## Atualizar uma instalação pelo código-fonte
 
 Antes de atualizar, volte ao automático para não deixar o serviço usando o driver durante a troca:
 
@@ -210,7 +260,7 @@ sudo ./install.sh
 
 Feche e reabra o painel. A configuração da curva continua salva, mas o comando acima muda o modo ativo para automático; reaplique sua curva na interface se quiser usá-la novamente. Alterações locais no código podem exigir resolver conflitos antes de atualizar.
 
-## Remover
+## Remover uma instalação pelo código-fonte
 
 Dentro da pasta do projeto:
 

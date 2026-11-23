@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+case "$1" in configure) ;; *) exit 0 ;; esac
+install -d -m755 /var/lib/avell-cc
+if [ ! -d "/lib/modules/$(uname -r)/build" ]; then
+    echo "Instale linux-headers-$(uname -r) e execute novamente a instalacao do pacote." >&2
+    exit 1
+fi
+# Also adopts an existing manual installation of the same driver version.
+if ! dkms status -m avell-dchu -v 1.0.0 | grep -q .; then
+    dkms add -m avell-dchu -v 1.0.0
+fi
+dkms build -m avell-dchu -v 1.0.0 -k "$(uname -r)" --force
+dkms install -m avell-dchu -v 1.0.0 -k "$(uname -r)" --force
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload
+    systemctl enable avell-cc-restore.service
+fi
+if ! modprobe -r avell_dchu; then
+    echo "Driver em uso; reinicie para concluir a atualizacao." >&2
+fi
+if modprobe avell_dchu; then
+    if [ -d /run/systemd/system ]; then
+        if ! systemctl restart avell-cc-restore.service; then
+            echo "Confira: journalctl -u avell-cc-restore.service" >&2
+        fi
+    fi
+else
+    echo "Pacote instalado, mas driver nao carregado. Confira Secure Boot/MOK e reinicie." >&2
+fi

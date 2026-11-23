@@ -16,3 +16,8 @@ modules.order
 *.dll
 *.sys
 *.cab
+
+# Pacotes gerados
+dist/
+*.deb
+avell-settings-backup.json

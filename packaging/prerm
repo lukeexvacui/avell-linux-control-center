@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+case "$1" in remove|upgrade|deconfigure)
+    if [ -d /run/systemd/system ]; then
+        systemctl stop avell-fan-curve.service avell-cc-restore.service 2>/dev/null || true
+    fi
+    ;;
+esac
+if [ "$1" = remove ]; then
+    # Restore firmware control without changing the user's saved preferences.
+    if [ -e /dev/avell-dchu ]; then
+        /usr/bin/python3 -I -c 'import sys; sys.path.insert(0, "/usr/lib/avell-cc"); from avell_cc import curve, hw; curve.release(); hw.apply("fan", "auto")'
+    fi
+    modprobe -r avell_dchu || true
+    if command -v dkms >/dev/null 2>&1; then
+        dkms remove -m avell-dchu -v 1.0.0 --all || true
+    fi
+    if [ -d /run/systemd/system ]; then
+        systemctl disable avell-cc-restore.service 2>/dev/null || true
+    fi
+fi
