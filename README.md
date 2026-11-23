@@ -1,5 +1,29 @@
 # Avell Linux Control Center
 
+Painel de controle para **Avell A50i no Linux**, com curvas de ventilação,
+monitoramento de temperatura/RPM, iluminação RGB e restauração automática.
+
+Este fork é mantido por [lukeexvacui](https://github.com/lukeexvacui) e deriva de
+[LuizRojas/avell-linux-control-center](https://github.com/LuizRojas/avell-linux-control-center).
+O driver e a implementação original são de Luiz Rojas; os créditos e a licença
+**GPL-2.0-or-later** foram preservados.
+
+### Novidades deste fork
+
+- Compatibilidade testada com Ubuntu 24.04 e kernel 6.8.0-149-generic.
+- Conversão corrigida do contador do firmware para RPM.
+- Curvas independentes CPU/GPU com mínimo/máximo, proteção a 90 °C e watchdog.
+- Painel GTK com cartões de sensores, gráficos, prévia da curva e atalhos de cor.
+- Configurações de curva e LEDs salvas e restauradas pelo serviço de inicialização.
+- Testes sem acesso ao hardware: `python3 test_curve.py` e `python3 test_rpm.py`.
+
+A instalação requer privilégios de administrador e carrega um módulo de kernel.
+A curva personalizada está limitada ao A50i e duas ventoinhas. A restauração foi
+testada reiniciando o serviço; reinício completo e suspensão reais ainda não foram
+validados. O controle não substitui manutenção de uma refrigeração defeituosa.
+
+---
+
 **Control Center nativo para Linux em notebooks Avell/Clevo** que usam a
 interface ACPI `CLV0001` / `\_SB.DCHU` (Insyde DCHU).
 
@@ -64,7 +88,7 @@ e GTK4/libadwaita). Com Secure Boot ativo, a chave MOK do DKMS precisa estar
 registrada.
 
 ```bash
-git clone https://github.com/LuizRojas/avell-linux-control-center.git
+git clone https://github.com/lukeexvacui/avell-linux-control-center.git
 cd avell-linux-control-center
 ./install.sh
 ```
@@ -134,3 +158,20 @@ interoperabilidade.
 ## Licença
 
 GPL-2.0-or-later. Veja [LICENSE](LICENSE).
+
+
+## Painel local A50i / Ubuntu 24.04 (2026-11-23)
+
+- Monitor: temperatura, RPM corrigido e ventilação, com gráfico de até 30 minutos e exportação CSV em Documentos/Avell.
+- Curva: CPU e GPU independentes; temperatura inicial/final e mínimo/máximo em %. Clique em Aplicar minha curva.
+- Padrão: 35% até 45 °C, crescimento linear até 100% a 80 °C.
+- A 90 °C em qualquer componente, ambas recebem 100%. Esse limite de proteção prevalece sobre o máximo escolhido.
+- Faixa editável: temperaturas de 30 a 85 °C e ventilação de 30 a 100%. A queda de ventilação é limitada a 5 pontos por ciclo; aumentos são imediatos.
+- Serviço avell-fan-curve: independente da janela, leitura a cada 2 s, watchdog de 10 s, ventilação máxima em falha/parada. Ao voltar ao automático pelo painel, os canais retornam ao firmware.
+- Configuração salva em /var/lib/avell-cc/state.json e restaurada pelo serviço de boot existente. Reinício/suspensão reais ainda não testados; intervalo prolongado detectado no monitor encerra a curva e aciona proteção.
+- Teclado: brilho, cor e efeitos existentes; bateria e perfis de energia continuam disponíveis.
+- A máquina não expõe LEDs individualmente: o teclado é RGB de uma zona.
+
+Verificações: python3 test_curve.py; python3 test_rpm.py; make -C driver.
+Testados no hardware: ventilação 100/90% por canal, curva ativa e falha forçada do serviço com retorno a máxima. Sem teste de estresse.
+Interface conferida em tela virtual. Protocolo per-channel PK04(1)/EC C1 e liberação 0x69 comparados com ClevoFanControl/src/hardware.rs, commit 3531063f718952cb789353b5c407eb5594cf274e.

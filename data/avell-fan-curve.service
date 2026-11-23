@@ -1,0 +1,12 @@
+[Unit]
+Description=Avell - curva de ventilação com proteção térmica
+After=systemd-modules-load.service
+
+[Service]
+Type=notify
+ExecStart=/usr/libexec/avell-cc/avell-fan-curve
+ExecStopPost=/usr/libexec/avell-cc/avell-fan-curve failsafe
+WatchdogSec=10
+TimeoutStopSec=5
+Restart=no
+UMask=0022

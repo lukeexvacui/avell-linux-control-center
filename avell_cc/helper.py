@@ -4,10 +4,13 @@ Valida estritamente os argumentos antes de tocar no sysfs e persiste o
 estado em /var/lib/avell-cc/state.json para ser restaurado no boot.
 """
 
+import fcntl
+import json
+import subprocess
 import re
 import sys
 
-from . import hw
+from . import hw, curve
 
 ORDER = ["profile", "fan", "kbd", "color", "effect", "charge"]
 
@@ -16,6 +19,8 @@ def _parse(args):
     if not args:
         raise ValueError("uso: avell-cc-helper <op> [args]")
     op, rest = args[0], args[1:]
+    if op == "curve" and len(rest) == 1:
+        return op, curve.validate(json.loads(rest[0]))
     if op == "profile" and len(rest) == 1 and rest[0] in hw.PROFILES:
         return op, rest[0]
     if op == "fan" and len(rest) == 1 and rest[0] in hw.FAN_MODES:
@@ -43,7 +48,11 @@ def restore():
     for key in ORDER:
         if key in state:
             try:
-                hw.apply(key, state[key])
+                if key == "fan" and state[key] == "curve":
+                    curve.validate(state.get("curve"))
+                    subprocess.run(["systemctl", "restart", "avell-fan-curve.service"], check=True)
+                else:
+                    hw.apply(key, state[key])
             except Exception as e:  # noqa: BLE001 - segue restaurando o resto
                 errors.append(f"{key}: {e}")
     if errors:
@@ -51,10 +60,25 @@ def restore():
     return "restaurado\n"
 
 
-def run(args):
+def _run(args):
     op, value = _parse(args)
     if op == "restore":
         return restore()
+    if op == "curve":
+        curve.check_model()
+        state = hw.load_state()
+        state.update(curve=value, fan="curve")
+        hw.save_state(state)
+        try:
+            subprocess.run(["systemctl", "restart", "avell-fan-curve.service"], check=True)
+        except Exception:
+            curve.failsafe()
+            raise
+        return "Curva ativada\n"
+    if op == "fan":
+        subprocess.run(["systemctl", "stop", "avell-fan-curve.service"], check=True)
+        curve.release()
+        curve.RUNTIME.unlink(missing_ok=True)
     hw.apply(op, value)
     if op != "antidust":
         state = hw.load_state()
@@ -66,6 +90,13 @@ def run(args):
             state["effect"] = st.get("kbd_effect") or "static"
         hw.save_state(state)
     return "ok\n"
+
+
+def run(args):
+    # Serialize hardware writes and read-modify-write of the shared state.
+    with open("/run/avell-cc.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return _run(args)
 
 
 def main():

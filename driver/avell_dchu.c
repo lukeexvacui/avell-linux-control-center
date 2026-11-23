@@ -517,6 +517,10 @@ static int avell_hwmon_read(struct device *dev, enum hwmon_sensor_types type,
 	case hwmon_fan:
 		*val = (buf[fan_map[channel].rpm_hi] << 8) |
 			buf[fan_map[channel].rpm_hi + 1];
+		/* FanSpeedSetting: 60 / (0.00005565217391304348 * count) * 2.
+		 * This is a period counter, not RPM; zero means stopped.
+		 */
+		*val = *val ? DIV_ROUND_CLOSEST(2156250L, *val) : 0;
 		break;
 	case hwmon_pwm:
 		*val = buf[fan_map[channel].duty];	/* already 0..255 */
@@ -947,8 +951,9 @@ static void avell_battery_init(struct avell_dchu *a)
 	a->battery_hook.name = "Avell FlexiCharger";
 	a->battery_hook.add_battery = avell_battery_add;
 	a->battery_hook.remove_battery = avell_battery_remove;
-	if (!devm_battery_hook_register(a->dev, &a->battery_hook))
-		a->battery_hook_registered = true;
+	/* ponytail: use the explicit lifecycle API available on Linux 6.8. */
+	battery_hook_register(&a->battery_hook);
+	a->battery_hook_registered = true;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1461,7 +1466,8 @@ static void avell_remove(struct platform_device *pdev)
 		misc_deregister(&a->misc);
 	if (a->pprof_registered)
 		avell_profile_exit(a);
-	/* battery hook is devm managed; clear global after it is gone */
+	if (a->battery_hook_registered)
+		battery_hook_unregister(&a->battery_hook);
 	avell_global = NULL;
 }
 
@@ -1503,7 +1509,11 @@ static struct platform_driver avell_driver = {
 		.pm = pm_sleep_ptr(&avell_pm),
 	},
 	.probe = avell_probe,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
+	.remove_new = avell_remove,
+#else
 	.remove = avell_remove,
+#endif
 };
 module_platform_driver(avell_driver);
 

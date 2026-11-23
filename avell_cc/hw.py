@@ -100,6 +100,9 @@ def status():
     s["profile"] = _read(PLATFORM_PROFILE)
     s["profile_choices"] = (_read(PLATFORM_PROFILE_CHOICES) or "").split()
     s["fan_mode"], s["fan_modes"] = _selected(_read(f"{PLATFORM_DEV}/fan_mode"))
+    if curve_status().get("active"):
+        s["fan_mode"] = "curve"
+        s["fan_modes"].append("curve")
     s["kbd_type"] = _read(f"{PLATFORM_DEV}/kbd_type", "none")
     if os.path.isdir(KBD_LED):
         s["kbd_brightness"] = int(_read(f"{KBD_LED}/brightness", "0"))
@@ -151,6 +154,21 @@ def _privileged(*args):
 
 def set_profile(name):
     return _privileged("profile", name)
+
+
+def set_curve(config):
+    return _privileged("curve", json.dumps(config))
+
+
+def curve_status():
+    try:
+        import time
+        with open("/run/avell-fan-curve.json") as f:
+            status = json.load(f)
+        status["active"] = bool(status.get("active") and time.time() - status.get("time", 0) < 8)
+        return status
+    except (OSError, ValueError, TypeError):
+        return {"active": False}
 
 
 def set_fan_mode(name):

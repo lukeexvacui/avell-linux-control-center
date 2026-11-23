@@ -32,6 +32,9 @@ install -Dm644 data/avell-control-center.desktop /usr/share/applications/avell-c
 install -Dm644 data/avell-cc-restore.service /etc/systemd/system/avell-cc-restore.service
 install -d -m755 /var/lib/avell-cc
 
+install -Dm755 bin/avell-fan-curve /usr/libexec/avell-cc/avell-fan-curve
+install -Dm644 data/avell-fan-curve.service /etc/systemd/system/avell-fan-curve.service
+
 systemctl daemon-reload
 systemctl enable avell-cc-restore.service >/dev/null
 

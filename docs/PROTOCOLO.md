@@ -66,7 +66,19 @@ No Linux é só `acpi_evaluate_dsm(handle, &guid, 0, command, &buffer256)`.
 | 0x7a (122) | get int | bits (bit12 lightbar, bit14 teclado branco 6 níveis, bit15 sem ventoinha, bit18 logo) | BaseKB |
 
 ### cmd 0x0c — ventoinhas
-`rpm = buf[n]<<8 | buf[n+1]`; CPU n=2, GPU n=4, GPU2 n=6, sistema n=36.
+`counter = buf[n]<<8 | buf[n+1]`; CPU n=2, GPU n=4, GPU2 n=6, sistema n=36.
+O campo é um contador de período, não RPM. O FanSpeedSetting do Windows
+converte com `60 / (0.00005565217391304348 * counter) * 2`, equivalente a
+`2156250 / counter`. O driver arredonda para o inteiro mais próximo
+(empates para cima) e retorna zero para contador zero, evitando divisão por zero.
+Exemplos: 357 → 6040 RPM; 900 → 2396 RPM; 337 → 6398 RPM.
+
+Comparação baseada na engenharia reversa publicada do FanSpeedSetting e na
+implementação Windows ClevoFanControl; o binário proprietário do A50i não
+foi descompilado nesta verificação:
+- https://github.com/samoylenkodmitry/clevo-thermald/blob/main/docs/REVERSE-ENGINEERING.md#runtime-one-shot-read
+- https://github.com/XiaoQing235/ClevoFanControl/blob/3531063f718952cb789353b5c407eb5594cf274e/src/hardware.rs#L203
+
 Duty (0–255): 16/19/22/38. Temperatura (°C): 18/21/24/40.
 
 ### cmd 0x79 — sub-comandos
